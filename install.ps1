@@ -17,7 +17,7 @@ function Install-NotebookLMSkill {
     # --- Configuracion (versiones oficiales fijas) ---
     $RepoSlug      = "Carlos-Vera/BrainClaude"
     $Branch        = "main"
-    $PythonVersion = "3.12"      # version de Python fija (ej. "3.12" o un patch "3.12.8")
+    $PythonVersion = "3.14"      # version de Python fija (ej. "3.14" o un patch "3.14.0")
     # -------------------------------------------------
 
     $Raw    = "https://raw.githubusercontent.com/$RepoSlug/$Branch"

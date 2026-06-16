@@ -33,7 +33,7 @@ irm https://raw.githubusercontent.com/Carlos-Vera/BrainClaude/main/install.ps1 |
 El instalador:
 
 1. Instala `uv` si no lo tienes (en tu carpeta de usuario, sin admin).
-2. Instala Python 3.12 aislado, sin tocar el sistema.
+2. Instala Python 3.14 aislado, sin tocar el sistema.
 3. Instala `notebooklm-py` y Chromium en un entorno aislado (`~/.notebooklm-venv`).
 4. Verifica que la CLI funciona.
 5. Copia las skills `notebooklm` y `wrapup` en `~/.claude/skills/`.

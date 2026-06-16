@@ -14,7 +14,7 @@ set -euo pipefail
 # --- Configuracion (versiones oficiales fijas) ---
 REPO_SLUG="Carlos-Vera/BrainClaude"
 BRANCH="main"
-PYTHON_VERSION="3.12"          # version de Python fija (ej. "3.12" o un patch "3.12.8")
+PYTHON_VERSION="3.14"          # version de Python fija (ej. "3.14" o un patch "3.14.0")
 # -------------------------------------------------
 
 RAW="https://raw.githubusercontent.com/${REPO_SLUG}/${BRANCH}"
