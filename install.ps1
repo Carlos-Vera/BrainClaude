@@ -4,6 +4,9 @@
 #
 #  Uso (PowerShell):
 #    irm https://raw.githubusercontent.com/Carlos-Vera/BrainClaude/main/install.ps1 | iex
+#
+#  Instala Python de forma aislada con uv (sin admin), deja la CLI
+#  notebooklm-py lista y copia las skills en ~/.claude/skills.
 # ============================================================
 
 # Envuelto en funcion para que un 'return' no cierre la sesion de PowerShell
@@ -11,56 +14,62 @@
 function Install-NotebookLMSkill {
     $ErrorActionPreference = "Stop"
 
-    # --- Configuracion (se ajusta al publicar el repo) ---
-    $RepoSlug = "Carlos-Vera/BrainClaude"
-    $Branch   = "main"
-    # ------------------------------------------------------
+    # --- Configuracion (versiones oficiales fijas) ---
+    $RepoSlug      = "Carlos-Vera/BrainClaude"
+    $Branch        = "main"
+    $PythonVersion = "3.12"      # version de Python fija (ej. "3.12" o un patch "3.12.8")
+    # -------------------------------------------------
 
     $Raw    = "https://raw.githubusercontent.com/$RepoSlug/$Branch"
     $Skills = @("notebooklm", "wrapup")
     $Venv   = Join-Path $env:USERPROFILE ".notebooklm-venv"
+    $UvDir  = Join-Path $env:USERPROFILE ".local\bin"
 
     Write-Host "============================================"
     Write-Host "   Instalador NotebookLM Skill - por Carlos Vera"
     Write-Host "============================================"
     Write-Host ""
 
-    # --- 1) Python 3.10+ ---
-    Write-Host "[1/4] Comprobando Python..."
-    $python = $null
-    foreach ($c in @("python", "python3", "py")) {
-        if (Get-Command $c -ErrorAction SilentlyContinue) {
-            $ok = (& $c -c "import sys; print(1 if sys.version_info >= (3,10) else 0)" 2>$null)
-            if ("$ok".Trim() -eq "1") { $python = $c; break }
+    # --- 1) uv (instala Python sin admin) ---
+    Write-Host "[1/5] Comprobando uv..."
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        if (Test-Path (Join-Path $UvDir "uv.exe")) {
+            $env:Path = "$UvDir;$env:Path"
+        } else {
+            Write-Host "   Instalando uv (sin admin, en tu carpeta de usuario)..."
+            powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+            $env:Path = "$UvDir;$env:Path"
         }
     }
-    if (-not $python) {
-        Write-Host "   x Python 3.10 o superior no encontrado."
-        Write-Host "     Instalalo desde https://www.python.org/downloads/ (marca 'Add Python to PATH') y reintenta."
-        Start-Process "https://www.python.org/downloads/"
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Host "   x No se pudo instalar uv."
         return
     }
-    Write-Host "   OK - Python encontrado."
+    Write-Host "   OK - uv listo."
 
-    # --- 2) CLI notebooklm-py ---
-    Write-Host "[2/4] Instalando notebooklm-py (3-7 minutos, es normal que tarde)..."
-    & $python -m venv $Venv
-    & "$Venv\Scripts\pip.exe" install --quiet --upgrade pip
-    & "$Venv\Scripts\pip.exe" install "notebooklm-py[browser]"
-    & "$Venv\Scripts\playwright.exe" install chromium
+    # --- 2) Python fijo via uv ---
+    Write-Host "[2/5] Asegurando Python $PythonVersion (aislado, sin tocar el sistema)..."
+    uv python install $PythonVersion
+    Write-Host "   OK - Python $PythonVersion disponible."
+
+    # --- 3) CLI notebooklm-py ---
+    Write-Host "[3/5] Instalando notebooklm-py (3-7 minutos, es normal que tarde)..."
+    uv venv --python $PythonVersion $Venv
+    uv pip install --python (Join-Path $Venv "Scripts\python.exe") "notebooklm-py[browser]"
+    & (Join-Path $Venv "Scripts\playwright.exe") install chromium
     Write-Host "   OK - notebooklm-py instalado."
 
-    # --- 3) Verificacion ---
-    Write-Host "[3/4] Verificando CLI..."
-    & "$Venv\Scripts\notebooklm.exe" --help *> $null
+    # --- 4) Verificacion ---
+    Write-Host "[4/5] Verificando CLI..."
+    & (Join-Path $Venv "Scripts\notebooklm.exe") --help *> $null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "   x Fallo la verificacion. Escribe a carlos@braveslab.com con el error."
         return
     }
     Write-Host "   OK - CLI operativa."
 
-    # --- 4) Instalar las skills en Claude Code ---
-    Write-Host "[4/4] Instalando las skills en Claude Code..."
+    # --- 5) Instalar las skills en Claude Code ---
+    Write-Host "[5/5] Instalando las skills en Claude Code..."
     $dst = Join-Path $env:USERPROFILE ".claude\skills"
     foreach ($s in $Skills) {
         $skillDir = Join-Path $dst $s

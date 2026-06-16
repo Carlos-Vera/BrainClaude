@@ -15,7 +15,8 @@ Incluye dos skills:
 
 ## Instalación (un solo comando)
 
-> Requiere Python 3.10+ y Claude Code instalado.
+> Solo necesitas Claude Code. Si no tienes Python, el instalador lo instala por ti
+> (aislado, con `uv`, sin contraseña de administrador).
 
 ### Mac / Linux
 
@@ -31,10 +32,11 @@ irm https://raw.githubusercontent.com/Carlos-Vera/BrainClaude/main/install.ps1 |
 
 El instalador:
 
-1. Comprueba Python 3.10+.
-2. Instala `notebooklm-py` y Chromium en un entorno aislado (`~/.notebooklm-venv`).
-3. Verifica que la CLI funciona.
-4. Copia las skills `notebooklm` y `wrapup` en `~/.claude/skills/`.
+1. Instala `uv` si no lo tienes (en tu carpeta de usuario, sin admin).
+2. Instala Python 3.12 aislado, sin tocar el sistema.
+3. Instala `notebooklm-py` y Chromium en un entorno aislado (`~/.notebooklm-venv`).
+4. Verifica que la CLI funciona.
+5. Copia las skills `notebooklm` y `wrapup` en `~/.claude/skills/`.
 
 ---
 

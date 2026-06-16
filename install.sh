@@ -5,13 +5,17 @@
 #
 #  Uso:
 #    curl -fsSL https://raw.githubusercontent.com/Carlos-Vera/BrainClaude/main/install.sh | bash
+#
+#  Instala Python de forma aislada con uv (sin contrasena ni sudo),
+#  deja la CLI notebooklm-py lista y copia las skills en ~/.claude/skills.
 # ============================================================
 set -euo pipefail
 
-# --- Configuracion (se ajusta al publicar el repo) ---
+# --- Configuracion (versiones oficiales fijas) ---
 REPO_SLUG="Carlos-Vera/BrainClaude"
 BRANCH="main"
-# ------------------------------------------------------
+PYTHON_VERSION="3.12"          # version de Python fija (ej. "3.12" o un patch "3.12.8")
+# -------------------------------------------------
 
 RAW="https://raw.githubusercontent.com/${REPO_SLUG}/${BRANCH}"
 SKILLS=(notebooklm wrapup)
@@ -22,41 +26,49 @@ echo "   Instalador NotebookLM Skill - por Carlos Vera"
 echo "============================================"
 echo ""
 
-# --- 1) Python 3.10+ ---
-echo "[1/4] Comprobando Python..."
-PYTHON=""
-for cand in python3.12 python3.11 python3.10 python3; do
-    if command -v "$cand" >/dev/null 2>&1 \
-        && "$cand" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1; then
-        PYTHON="$cand"
-        break
-    fi
-done
-if [ -z "$PYTHON" ]; then
-    echo "   x Python 3.10 o superior no encontrado."
-    echo "     Instalalo desde https://www.python.org/downloads/ y vuelve a ejecutar este comando."
-    exit 1
-fi
-echo "   OK - $("$PYTHON" --version 2>&1)"
+# Localiza uv en el PATH o en sus rutas de instalacion conocidas
+ensure_uv_in_path() {
+    command -v uv >/dev/null 2>&1 && return 0
+    for p in "$HOME/.local/bin" "$HOME/.cargo/bin"; do
+        if [ -x "$p/uv" ]; then
+            export PATH="$p:$PATH"
+            return 0
+        fi
+    done
+    return 1
+}
 
-# --- 2) CLI notebooklm-py ---
-echo "[2/4] Instalando notebooklm-py (3-7 minutos, es normal que tarde)..."
-"$PYTHON" -m venv "$VENV"
-"$VENV/bin/pip" install --quiet --upgrade pip
-"$VENV/bin/pip" install --quiet "notebooklm-py[browser]"
+# --- 1) uv (instala Python sin contrasena) ---
+echo "[1/5] Comprobando uv..."
+if ! ensure_uv_in_path; then
+    echo "   Instalando uv (sin contrasena, en tu carpeta de usuario)..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ensure_uv_in_path || { echo "   x No se pudo instalar uv."; exit 1; }
+fi
+echo "   OK - $(uv --version)"
+
+# --- 2) Python fijo via uv ---
+echo "[2/5] Asegurando Python ${PYTHON_VERSION} (aislado, sin tocar el sistema)..."
+uv python install "$PYTHON_VERSION"
+echo "   OK - Python ${PYTHON_VERSION} disponible."
+
+# --- 3) CLI notebooklm-py ---
+echo "[3/5] Instalando notebooklm-py (3-7 minutos, es normal que tarde)..."
+uv venv --python "$PYTHON_VERSION" "$VENV"
+uv pip install --python "$VENV/bin/python" --quiet "notebooklm-py[browser]"
 "$VENV/bin/playwright" install chromium
 echo "   OK - notebooklm-py instalado."
 
-# --- 3) Verificacion ---
-echo "[3/4] Verificando CLI..."
+# --- 4) Verificacion ---
+echo "[4/5] Verificando CLI..."
 if ! "$VENV/bin/notebooklm" --help >/dev/null 2>&1; then
     echo "   x Fallo la verificacion. Escribe a carlos@braveslab.com con el error."
     exit 1
 fi
 echo "   OK - CLI operativa."
 
-# --- 4) Instalar las skills en Claude Code ---
-echo "[4/4] Instalando las skills en Claude Code..."
+# --- 5) Instalar las skills en Claude Code ---
+echo "[5/5] Instalando las skills en Claude Code..."
 DST="$HOME/.claude/skills"
 mkdir -p "$DST"
 for S in "${SKILLS[@]}"; do
